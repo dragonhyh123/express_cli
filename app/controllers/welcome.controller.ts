@@ -4,21 +4,41 @@ import { Router, Request, Response } from 'express';
 // Assign router to the express.Router() instance
 const router: Router = Router();
 
-// The / here corresponds to the route that the WelcomeController
-// is mounted on in the server.ts file.
-// In this case it's /welcome
-router.get('/', (req: Request, res: Response) => {
-    // Reply with a hello world when no name param is provided
-    res.send('Hello, World!');
-});
+const userModel = require('../models/user');
+const mongoose = require('mongoose');
 
-router.get('/:name', (req: Request, res: Response) => {
-    // Extract the name from the request parameters
-    let { name } = req.params;
+mongoose.connect('mongodb://localhost/todolist', {
+    useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true
+})
 
-    // Greet the given name
-    res.send(`Hello, ${name}`);
-});
+router.post('/login', async(req:Request,res:Response)=>{
+    try{
+        const data = await userModel.findOne({userName:req.body.userName});
+        if(data){
+            if(data.password!==req.body.password){
+                res.status(200).json({status:'error',message:'wrong password'});
+            }else{
+                res.status(200).json({status:'success'});
+            }
+        }else{
+            res.status(200).json({status:'error',message:'No such user'});
+        }
+    }catch(err){
+        res.status(500).json({message:err.message});
+    }
+})
+
+router.post('/register',async(req:Request,res:Response)=>{
+    const data = {userName:req.body.userName,password:req.body.password};
+    let user = new userModel(data);
+
+    try{
+        await user.save();
+        res.status(200).json({status:'success'});
+    }catch(err){
+        res.status(500).json({status:'error',message:err.message});
+    }
+})
 
 // Export the express.Router() instance to be used by server.ts
 export const WelcomeController: Router = router;
